@@ -19,7 +19,7 @@ class EnvLabyrinthe() :
         self.nblignes = nblignes
         self.nbcolonnes = nbcolonnes
 
-        self.nb_states = nblignes*nbcolonnes
+        # self.nb_states = nblignes*nbcolonnes
         self.nb_actions = 8 
 
 
@@ -39,7 +39,17 @@ class EnvLabyrinthe() :
         self.finalX = nblignes-1
         self.finalY = nbcolonnes-1
 
-    
+        self.init_grid()
+
+        cpt_index = 0
+        self.state_dict = dict()
+        for i in range(nblignes):
+            for j in range(nbcolonnes):
+                if self.grid[i,j] >= 0 :
+                    self.state_dict[(i,j)] = cpt_index
+                    cpt_index += 1
+        self.nb_states = cpt_index
+
     def get_index(self,i,j):
         return i * self.nbcolonnes + j
 
@@ -54,6 +64,9 @@ class EnvLabyrinthe() :
         new_cj = cj
         reward = 0
         changed = 0
+
+        # print(f"action a faire : {action} - case {i,j} - {self.grid[(i,j)]}")
+        #input()
 
         # deplacement (-2,1)
         if index_action == 'y' and li>1 and cj < self.nbcolonnes-1 and self.grid[li-2,cj+1]>-1:
@@ -138,7 +151,7 @@ class EnvLabyrinthe() :
                     self.PosY=NewPosY
                     self.PosX=NewPosX
 
-        return self.get_index(self.PosX,self.PosY),reward,self.isFinal()
+        return self.state_dict[(self.PosX,self.PosY)],reward,self.isFinal()
 
     def isFinal(self):
         return self.PosX == self.finalX and self.PosY == self.finalY
@@ -207,6 +220,9 @@ class EnvLabyrinthe() :
         # Ajout du 0 dans langle en bas a droite
         self.grid[self.nblignes-2,self.nbcolonnes-1]=0
         self.grid[self.nblignes-1,self.nbcolonnes-2]=0
+        # Ajout de 0 pour avoir toujours un chemin accessible
+        self.grid[self.nblignes-2,self.nbcolonnes-3]=0
+        self.grid[self.nblignes-3,self.nbcolonnes-2]=0
 
     def reward(
         self,
@@ -214,7 +230,7 @@ class EnvLabyrinthe() :
         j : int
     ) :
         if self.isFinalcoords(i,j) :
-            return 1000
+            return 1e10
         else: 
             return - (1 + self.costs[self.grid[i,j]])        
 
@@ -275,20 +291,21 @@ class EnvLabyrinthe() :
         MDP = dict()
         for i in range(self.nblignes) :
             for j in range(self.nbcolonnes) :
-                """
+                
                 if self.grid[i,j] < 0 :
                     continue
-                """
-
-                state = self.get_index(i,j)
+            
+                # print(self.grid[i,j])
+                state = self.state_dict[(i,j)]
                 list_action = list()
                 for action in range(8):
                     list_states_recheable = list()
 
                     state_goal = self.make_action(action,i,j)
                     reward,new_li,new_cj,changed = state_goal
+                    # print("reward : ",reward)
                     if changed :
-                        new_state = self.get_index(new_li,new_cj)
+                        new_state = self.state_dict[(new_li,new_cj)]
                         if not self.alea : 
                             list_states_recheable.append( (new_state , 1.0, reward , self.isFinalcoords(new_li,new_cj)) )
                         else :
@@ -300,17 +317,19 @@ class EnvLabyrinthe() :
 
                             for (i_bis,j_bis) in l :
                                 
-                                new_state = self.get_index(i_bis,j_bis)
+                                new_state = self.state_dict[(i_bis,j_bis)]
                                 proba = (q/16) / q
                                 reward = self.reward(i_bis,j_bis)
                                 list_states_recheable.append( (new_state , proba, reward , self.isFinalcoords(i_bis,j_bis)) )
+                            
+                        
                     else:
-                        list_states_recheable.append( (self.get_index(i,j) , 1.0, 0 , self.isFinalcoords(i,j)) )
-
+                        list_states_recheable.append( (self.state_dict[(i,j)] , 1.0, 0 , self.isFinalcoords(i,j)) )
+                        
                     list_action.append(list_states_recheable)
+                    
                 MDP[state] = list_action
         return MDP
-
 
 
 
