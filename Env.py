@@ -7,6 +7,7 @@ Nikola KOSTADINOVIC
 import numpy as np
 from termcolor import colored
 
+
 class EnvLabyrinthe() :
 
     def __init__(
@@ -14,8 +15,21 @@ class EnvLabyrinthe() :
         nblignes : int,
         nbcolonnes : int,
         alea : int,
+        proba_mur : float = 0.15,
+        proba_blanc : float = 0.45,
+        proba_vert : float = 0.1,
+        proba_bleue : float = 0.1,
+        proba_rouge : float = 0.1
 
     ) :
+        
+        self.proba_mur = proba_mur
+        self.proba_blanc = proba_blanc
+        self.proba_vert = proba_vert
+        self.proba_bleue = proba_bleue
+        self.proba_rouge = proba_rouge
+        
+        
         self.nblignes = nblignes
         self.nbcolonnes = nbcolonnes
 
@@ -43,17 +57,19 @@ class EnvLabyrinthe() :
 
         cpt_index = 0
         self.state_dict = dict()
+        self.infos_state_dict = dict()
         for i in range(nblignes):
             for j in range(nbcolonnes):
                 if self.grid[i,j] >= 0 :
                     self.state_dict[(i,j)] = cpt_index
+                    self.infos_state_dict[cpt_index] = self.grid[(i,j)]
                     cpt_index += 1
         self.nb_states = cpt_index
 
     def get_index(self,i,j):
         return i * self.nbcolonnes + j
 
-    def make_action(self,action,i,j):
+    def make_action(self,action,i,j,bi_obj=False):
         actions_values = ['f','g','h','j','y','u','r','t']
         index_action = actions_values[action]
 
@@ -72,49 +88,49 @@ class EnvLabyrinthe() :
         if index_action == 'y' and li>1 and cj < self.nbcolonnes-1 and self.grid[li-2,cj+1]>-1:
             new_li = li-2
             new_cj = cj+1
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (-2,-1)
         if index_action == 't' and li>1 and cj > 0 and self.grid[li-2,cj-1]>-1:
             new_li = li-2
             new_cj = cj-1
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (-1,2)
         if index_action == 'u' and li>0 and cj < self.nbcolonnes-2 and self.grid[li-1,cj+2]>-1:
             new_li = li-1
             new_cj = cj+2
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (-1,-2)
         if index_action == 'r' and li>0 and cj >1 and self.grid[li-1,cj-2]>-1:
             new_li = li-1
             new_cj = cj-2
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (2,1)  
         if index_action == 'h' and li<self.nblignes-2 and cj < self.nbcolonnes-1 and self.grid[li+2,cj+1]>-1:
             new_li = li+2
             new_cj = cj+1
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (2,-1)
         if index_action == 'g' and li<self.nblignes-2 and cj > 0 and self.grid[li+2,cj-1]>-1:
             new_li = li+2
             new_cj = cj-1
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (1,2)
         if index_action == 'j' and li<self.nblignes-1 and cj < self.nbcolonnes-2 and self.grid[li+1,cj+2]>-1:
             new_li = li+1
             new_cj = cj+2
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         # deplacement (1,-2)
         if index_action == 'f' and li<self.nblignes-1 and cj >1 and self.grid[li+1,cj-2]>-1:
             new_li= li+1
             new_cj = cj-2
-            reward = self.reward(new_li,new_cj)
+            reward = self.reward(new_li,new_cj,bi_obj)
             changed=1
         
         return reward,new_li,new_cj,changed
@@ -187,11 +203,11 @@ class EnvLabyrinthe() :
             print("\n")
 
     def init_grid(self) :
-        pmur=0.15 
-        pblanc=0.45 
-        pverte=0.1
-        pbleue=0.1
-        prouge=0.1
+        pmur= self.proba_mur
+        pblanc= self.proba_blanc
+        pverte= self.proba_vert
+        pbleue= self.proba_bleue
+        prouge= self.proba_rouge
         #  pnoire=0.1 mais pas besoin de le specifier c'est la couleur restante
         for i in range(self.nblignes):
             for j in range(self.nbcolonnes):
@@ -227,12 +243,24 @@ class EnvLabyrinthe() :
     def reward(
         self,
         i : int,
-        j : int
+        j : int,
+        bi_obj = False
     ) :
-        if self.isFinalcoords(i,j) :
-            return 1e10
-        else: 
-            return - (1 + self.costs[self.grid[i,j]])        
+        if bi_obj :
+            if self.isFinalcoords(i,j) :
+                return (1e10,1e10)
+            else : 
+                if self.grid[i,j] == 2 : # bleue
+                    return (-2,0)
+                elif self.grid[i,j] == 3 : # rouge
+                    return (0,-2)
+                else : 
+                    return (-1,-1)
+        else :
+            if self.isFinalcoords(i,j) :
+                return 1e10
+            else: 
+                return - (1 + self.costs[self.grid[i,j]])        
 
     def replace_player_init(self):
         self.PosX,self.PosY = 0,0
@@ -325,6 +353,65 @@ class EnvLabyrinthe() :
                         
                     else:
                         list_states_recheable.append( (self.state_dict[(i,j)] , 1.0, 0 , self.isFinalcoords(i,j)) )
+                        
+                    list_action.append(list_states_recheable)
+                    
+                MDP[state] = list_action
+        return MDP
+
+    def getMDPBiObj(self) :
+
+        """
+        return : 
+            {
+                etat_1 : [ a_1, ... , a_n],
+                ...
+                etat_k : [ a_1, ... , a_n]
+            }        
+            ou a_i = [
+                (new_state,proba,(r_1,r_2),done)_1
+                ...
+                (new_state,proba,(r_1,r_2),done)_m avec m <= 8
+            ]
+        """
+
+        MDP = dict()
+        for i in range(self.nblignes) :
+            for j in range(self.nbcolonnes) :
+                
+                if self.grid[i,j] < 0 :
+                    continue
+            
+                # print(self.grid[i,j])
+                state = self.state_dict[(i,j)]
+                list_action = list()
+                for action in range(8):
+                    list_states_recheable = list()
+
+                    state_goal = self.make_action(action,i,j,bi_obj=True)
+                    reward,new_li,new_cj,changed = state_goal
+                    # print("reward : ",reward)
+                    if changed :
+                        new_state = self.state_dict[(new_li,new_cj)]
+                        if not self.alea : 
+                            list_states_recheable.append( (new_state , 1.0, reward , self.isFinalcoords(new_li,new_cj)) )
+                        else :
+                            # recupération dans une liste les états atteignable par aléatoire
+                            l =  self.get_nearest_position(new_li,new_cj) 
+                            q = len(l)
+                            proba = 1.0 - (q/16)
+                            list_states_recheable.append( (new_state , proba, reward , self.isFinalcoords(new_li,new_cj)) )
+
+                            for (i_bis,j_bis) in l :
+                                
+                                new_state = self.state_dict[(i_bis,j_bis)]
+                                proba = (q/16) / q
+                                reward = self.reward(i_bis,j_bis,bi_obj=True)
+                                list_states_recheable.append( (new_state , proba, reward , self.isFinalcoords(i_bis,j_bis)) )
+                            
+                        
+                    else:
+                        list_states_recheable.append( (self.state_dict[(i,j)] , 1.0, (0,0) , self.isFinalcoords(i,j)) )
                         
                     list_action.append(list_states_recheable)
                     
