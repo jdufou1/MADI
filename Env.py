@@ -230,8 +230,10 @@ class EnvLabyrinthe() :
                                     c=4   
                 self.grid[i,j]=c
         self.grid[0,0]=0
-        self.grid[0,1]=0
-        self.grid[2,0]=0    
+        self.grid[1,2]=0
+        self.grid[2,1]=0   
+        
+        
         self.grid[self.nblignes-1,self.nbcolonnes-1]=0 # Ajout du 0 derniere case en bas a droite
         # Ajout du 0 dans langle en bas a droite
         self.grid[self.nblignes-2,self.nbcolonnes-1]=0
