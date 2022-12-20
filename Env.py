@@ -52,7 +52,8 @@ class EnvLabyrinthe() :
         self.PosY = 0
         self.finalX = nblignes-1
         self.finalY = nbcolonnes-1
-
+        
+        
         self.init_grid()
 
         cpt_index = 0
@@ -166,6 +167,8 @@ class EnvLabyrinthe() :
                 if NewPosX>=0 and NewPosY>=0 and NewPosX<=self.nblignes-1 and NewPosY<=self.nbcolonnes-1 and self.grid[NewPosX,NewPosY]>-1:
                     self.PosY=NewPosY
                     self.PosX=NewPosX
+                    
+        reward = self.reward(self.PosX,self.PosY)
 
         return self.state_dict[(self.PosX,self.PosY)],reward,self.isFinal()
 
